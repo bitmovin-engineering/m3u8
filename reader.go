@@ -315,6 +315,8 @@ func decodeLineOfMasterPlaylist(p *MasterPlaylist, state *decodingState, line st
 				alt.Language = v
 			case "NAME":
 				alt.Name = v
+			case "INSTREAM-ID":
+				alt.InstreamID = v
 			case "DEFAULT":
 				if strings.ToUpper(v) == "YES" {
 					alt.Default = true
