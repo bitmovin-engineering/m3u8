@@ -230,7 +230,7 @@ func decode(buf *bytes.Buffer, strict bool, customDecoders []CustomDecoder) (Pla
 		}
 	}
 
-	if len(state.alternatives) > 0 {
+	if len(state.alternatives) > 0 && len(master.Variants) > 0 {
 		master.Variants[0].Alternatives = state.alternatives
 	}
 
