@@ -228,8 +228,12 @@ func decode(buf *bytes.Buffer, strict bool, customDecoders []CustomDecoder) (Pla
 		if strict && err != nil {
 			return media, state.listType, err
 		}
-
 	}
+
+	if len(state.alternatives) > 0 {
+		master.Variants[0].Alternatives = state.alternatives
+	}
+
 	if state.listType == MEDIA && state.tagWV {
 		media.WV = wv
 	}
