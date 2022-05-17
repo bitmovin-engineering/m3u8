@@ -93,6 +93,32 @@ func (p *MasterPlaylist) Encode() *bytes.Buffer {
 		}
 	}
 
+	// Write any keys
+	if p.Keys != nil {
+		for _, key := range p.Keys {
+			p.buf.WriteString("#EXT-X-SESSION-KEY:")
+			if key.Method != "" {
+				p.buf.WriteString("METHOD=") // Type should not be quoted
+				p.buf.WriteString(key.Method)
+			}
+			if key.Keyformat != "" {
+				p.buf.WriteString(",KEYFORMAT=\"")
+				p.buf.WriteString(key.Keyformat)
+				p.buf.WriteRune('"')
+			}
+			if key.Keyformatversions != "" {
+				p.buf.WriteString(",KEYFORMATVERSIONS=\"")
+				p.buf.WriteString(key.Keyformatversions)
+				p.buf.WriteRune('"')
+			}
+			if key.URI != "" {
+				p.buf.WriteString(",URI=")
+				p.buf.WriteString(key.URI)
+			}
+			p.buf.WriteRune('\n')
+		}
+	}
+
 	var altsWritten = make(map[string]bool)
 
 	for _, pl := range p.Variants {

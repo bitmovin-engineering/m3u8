@@ -154,6 +154,7 @@ type MasterPlaylist struct {
 	independentSegments bool
 	Custom              map[string]CustomTag
 	customDecoders      []CustomDecoder
+	Keys				[]*Key // EXT-X-KEY is optional encryption key displayed before any segments (default key for the playlist)
 }
 
 // Variant structure represents variants for master playlist.

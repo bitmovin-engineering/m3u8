@@ -445,6 +445,24 @@ func decodeLineOfMasterPlaylist(p *MasterPlaylist, state *decodingState, line st
 				state.variant.HDCPLevel = v
 			}
 		}
+	case strings.HasPrefix(line, "#EXT-X-SESSION-KEY:"):
+		key := new(Key)
+		
+		for k, v := range decodeParamsLine(line[19:]) {
+			switch k {
+			case "METHOD":
+				key.Method = v
+			case "URI":
+				key.URI = v
+			case "IV":
+				key.IV = v
+			case "KEYFORMAT":
+				key.Keyformat = v
+			case "KEYFORMATVERSIONS":
+				key.Keyformatversions = v
+			}
+		}
+		p.Keys = append(p.Keys, key)
 	case strings.HasPrefix(line, "#"):
 		// comments are ignored
 	}
