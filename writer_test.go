@@ -770,6 +770,7 @@ func TestNewMasterPlaylist(t *testing.T) {
 func TestNewMasterPlaylistWithAlternatives(t *testing.T) {
 	m := NewMasterPlaylist()
 	audioUri := fmt.Sprintf("%s/rendition.m3u8", "800")
+	two := uint64(2)
 	audioAlt := &Alternative{
 		GroupId:    "audio",
 		URI:        audioUri,
@@ -778,6 +779,7 @@ func TestNewMasterPlaylistWithAlternatives(t *testing.T) {
 		Default:    true,
 		Autoselect: "YES",
 		Language:   "english",
+		Channels:   &two,
 	}
 	p, e := NewMediaPlaylist(3, 5)
 	if e != nil {
@@ -794,7 +796,7 @@ func TestNewMasterPlaylistWithAlternatives(t *testing.T) {
 	if m.ver != 4 {
 		t.Fatalf("Expected version 4, actual, %d", m.ver)
 	}
-	expected := `#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",NAME="main",DEFAULT=YES,AUTOSELECT=YES,LANGUAGE="english",URI="800/rendition.m3u8"`
+	expected := `#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",NAME="main",DEFAULT=YES,AUTOSELECT=YES,LANGUAGE="english",CHANNELS=2,URI="800/rendition.m3u8"`
 	if !strings.Contains(m.String(), expected) {
 		t.Fatalf("Master playlist did not contain: %s\nMaster Playlist:\n%v", expected, m.String())
 	}
