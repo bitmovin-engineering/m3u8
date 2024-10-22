@@ -102,6 +102,47 @@ func TestDecodeMasterPlaylistWithAlternatives(t *testing.T) {
 	// fmt.Println(p.Encode().String())
 }
 
+func TestDecodeMasterPlaylistWithAudioAlternative(t *testing.T) {
+	f, err := os.Open("sample-playlists/master-with-audio-alternative.m3u8")
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := NewMasterPlaylist()
+	err = p.DecodeFrom(bufio.NewReader(f), false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// check parsed values
+	if p.ver != 3 {
+		t.Errorf("Version of parsed playlist = %d (must = 3)", p.ver)
+	}
+	if len(p.Variants) != 2 {
+		t.Fatal("not all variants in master playlist parsed")
+	}
+	// TODO check other values
+	for i, v := range p.Variants {
+		if i == 0 {
+			if len(v.Alternatives) != 1 {
+				t.Fatalf("not all alternatives from #EXT-X-MEDIA parsed (has %d but should be 3", len(v.Alternatives))
+			}
+			if v.Alternatives[0].Type != "AUDIO" {
+				t.Fatalf("alternative type should be AUDIO but it is %s", v.Alternatives[0].Type)
+			}
+			if v.Alternatives[0].GroupId != "default-audio" {
+				t.Fatalf("alternative group id should be default-audio but it is %s", v.Alternatives[0].GroupId)
+			}
+			if v.Alternatives[0].Channels == nil || *v.Alternatives[0].Channels != 2 {
+				t.Fatalf("alternative channels should be 2 but it is %v", v.Alternatives[0].Channels)
+			}
+		}
+		if i == 1 && len(v.Alternatives) != 0 {
+			t.Fatalf("not all alternatives from #EXT-X-MEDIA parsed (has %d but should be 3", len(v.Alternatives))
+		}
+	}
+
+	// fmt.Println(p.Encode().String())
+}
+
 func TestDecodeMasterPlaylistWithClosedCaptionEqNone(t *testing.T) {
 	f, err := os.Open("sample-playlists/master-with-closed-captions-eq-none.m3u8")
 	if err != nil {
