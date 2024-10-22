@@ -41,7 +41,7 @@ Install
 
 	go get github.com/bitmovin-engineering/m3u8
 
-or get releases from https://github.com/grafov/m3u8/releases
+or get releases from https://github.com/bitmovin-engineering/m3u8/releases
 
 Documentation [![GoDoc](https://godoc.org/github.com/grafov/m3u8?status.svg)](https://pkg.go.dev/github.com/grafov/m3u8)
 -------------
