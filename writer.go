@@ -6,7 +6,7 @@ package m3u8
 
  Copyright 2013-2019 The Project Developers.
  See the AUTHORS and LICENSE files at the top-level directory of this distribution
- and at https://github.com/grafov/m3u8/
+ and at https://github.com/bitmovin-engineering/m3u8/
 
  ॐ तारे तुत्तारे तुरे स्व
 */
@@ -93,7 +93,7 @@ func (p *MasterPlaylist) Encode() *bytes.Buffer {
 		}
 	}
 
-	var altsWritten = make(map[string]bool)
+	altsWritten := make(map[string]bool)
 
 	for _, pl := range p.Variants {
 		if pl.Alternatives != nil {
@@ -306,13 +306,13 @@ func (p *MasterPlaylist) SetVersion(ver uint8) {
 }
 
 // IndependentSegments returns true if all media samples in a segment can be
-// decoded without information from other segments.
+// decoded without information from other buf.
 func (p *MasterPlaylist) IndependentSegments() bool {
 	return p.independentSegments
 }
 
 // SetIndependentSegments sets whether all media samples in a segment can be
-// decoded without information from other segments.
+// decoded without information from other buf.
 func (p *MasterPlaylist) SetIndependentSegments(b bool) {
 	p.independentSegments = b
 }
@@ -409,7 +409,7 @@ func (p *MediaPlaylist) ResetCache() {
 }
 
 // Encode generates output in M3U8 format. Marshal `winsize` elements
-// from bottom of the `segments` queue.
+// from bottom of the `buf` queue.
 func (p *MediaPlaylist) Encode() *bytes.Buffer {
 	if p.buf.Len() > 0 {
 		return &p.buf
@@ -605,9 +605,11 @@ func (p *MediaPlaylist) Encode() *bytes.Buffer {
 			case SCTE35_OATCLS:
 				switch seg.SCTE.CueType {
 				case SCTE35Cue_Start:
-					p.buf.WriteString("#EXT-OATCLS-SCTE35:")
-					p.buf.WriteString(seg.SCTE.Cue)
-					p.buf.WriteRune('\n')
+					if seg.SCTE.Cue != "" {
+						p.buf.WriteString("#EXT-OATCLS-SCTE35:")
+						p.buf.WriteString(seg.SCTE.Cue)
+						p.buf.WriteRune('\n')
+					}
 					p.buf.WriteString("#EXT-X-CUE-OUT:")
 					p.buf.WriteString(strconv.FormatFloat(seg.SCTE.Time, 'f', -1, 64))
 					p.buf.WriteRune('\n')
@@ -915,4 +917,26 @@ func (p *MediaPlaylist) SetWinSize(winsize uint) error {
 	}
 	p.winsize = winsize
 	return nil
+}
+
+// GetAllSegments could get all segments currently added to
+// playlist.
+func (p *MediaPlaylist) GetAllSegments() []*MediaSegment {
+	if p.count == 0 {
+		return nil
+	}
+	buf := make([]*MediaSegment, 0, p.count)
+	if p.head < p.tail {
+		for i := p.head; i < p.tail; i++ {
+			buf = append(buf, p.Segments[i])
+		}
+		return buf
+	}
+	for i := uint(0); i < p.tail; i++ {
+		buf = append(buf, p.Segments[i])
+	}
+	for i := p.head; i < p.capacity; i++ {
+		buf = append(buf, p.Segments[i])
+	}
+	return buf
 }

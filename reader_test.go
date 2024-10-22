@@ -3,7 +3,7 @@ Playlist parsing tests.
 
 Copyright 2013-2019 The Project Developers.
 See the AUTHORS and LICENSE files at the top-level directory of this distribution
-and at https://github.com/grafov/m3u8/
+and at https://github.com/bitmovin-engineering/m3u8/
 
 ॐ तारे तुत्तारे तुरे स्व
 */
@@ -1014,6 +1014,41 @@ func TestDecodeMediaPlaylistStartTime(t *testing.T) {
 	}
 	if pp.StartTime != float64(8.0) {
 		t.Errorf("Media segment StartTime != 8: %f", pp.StartTime)
+	}
+}
+
+func TestDecodeMediaPlaylistWithCueOutCueIn(t *testing.T) {
+	f, err := os.Open("sample-playlists/media-playlist-with-cue-out-in-without-oatcls.m3u8")
+	if err != nil {
+		t.Fatal(err)
+	}
+	p, listType, err := DecodeFrom(bufio.NewReader(f), true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pp := p.(*MediaPlaylist)
+	CheckType(t, pp)
+	if listType != MEDIA {
+		t.Error("Sample not recognized as media playlist.")
+	}
+
+	if pp.Segments[5].SCTE.CueType != SCTE35Cue_Start {
+		t.Errorf("EXT-CUE-OUT must result in SCTE35Cue_Start")
+	}
+	if pp.Segments[5].SCTE.Time != 0 {
+		t.Errorf("EXT-CUE-OUT without duration must not have Time set")
+	}
+	if pp.Segments[9].SCTE.CueType != SCTE35Cue_End {
+		t.Errorf("EXT-CUE-IN must result in SCTE35Cue_End")
+	}
+	if pp.Segments[30].SCTE.CueType != SCTE35Cue_Start {
+		t.Errorf("EXT-CUE-OUT must result in SCTE35Cue_Start")
+	}
+	if pp.Segments[30].SCTE.Time != 180 {
+		t.Errorf("EXT-CUE-OUT:180.0 must have time set to 180")
+	}
+	if pp.Segments[60].SCTE.CueType != SCTE35Cue_End {
+		t.Errorf("EXT-CUE-IN must result in SCTE35Cue_End")
 	}
 }
 

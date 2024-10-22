@@ -6,7 +6,7 @@ package m3u8
 
  Copyright 2013-2019 The Project Developers.
  See the AUTHORS and LICENSE files at the top-level directory of this distribution
- and at https://github.com/grafov/m3u8/
+ and at https://github.com/bitmovin-engineering/m3u8/
 
  ॐ तारे तुत्तारे तुरे स्व
 */
@@ -212,7 +212,7 @@ func decode(buf *bytes.Buffer, strict bool, customDecoders []CustomDecoder) (Pla
 			break
 		}
 
-		// fixes the issues https://github.com/grafov/m3u8/issues/25
+		// fixes the issues https://github.com/bitmovin-engineering/m3u8/issues/25
 		// TODO: the same should be done in decode functions of both Master- and MediaPlaylists
 		// so some DRYing would be needed.
 		if len(line) < 1 || line == "\r" {
@@ -725,6 +725,15 @@ func decodeLineOfMediaPlaylist(p *MediaPlaylist, wv *WV, state *decodingState, l
 			case "ElapsedTime":
 				state.scte.Elapsed, _ = strconv.ParseFloat(value, 64)
 			}
+		}
+	case !state.tagSCTE35 && strings.HasPrefix(line, "#EXT-X-CUE-OUT"):
+		state.tagSCTE35 = true
+		state.scte = new(SCTE)
+		state.scte.Syntax = SCTE35_OATCLS
+		state.scte.CueType = SCTE35Cue_Start
+		lenLine := len(line)
+		if lenLine > 14 {
+			state.scte.Time, _ = strconv.ParseFloat(line[15:], 64)
 		}
 	case !state.tagSCTE35 && line == "#EXT-X-CUE-IN":
 		state.tagSCTE35 = true
