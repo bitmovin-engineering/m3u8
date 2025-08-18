@@ -123,7 +123,7 @@ func TestDecodeMasterPlaylistWithAudioAlternative(t *testing.T) {
 	// TODO check other values
 	for _, v := range p.Variants {
 		if len(v.Alternatives) != 1 {
-			t.Fatalf("not all alternatives from #EXT-X-MEDIA parsed (has %d but should be 3", len(v.Alternatives))
+			t.Fatalf("not all alternatives from #EXT-X-MEDIA parsed (has %d but should be 1", len(v.Alternatives))
 		}
 		if v.Alternatives[0].Type != "AUDIO" {
 			t.Fatalf("alternative type should be AUDIO but it is %s", v.Alternatives[0].Type)
@@ -203,92 +203,92 @@ func TestDecodeMasterPlaylistWithExtendedChannels(t *testing.T) {
 
 func TestChannelsParsingAndWriting(t *testing.T) {
 	tests := []struct {
-		name              string
-		channelsString    string
-		expectedChannels  uint64
-		expectedPostfix   string
-		expectedOutput    string
-		description       string
+		name             string
+		channelsString   string
+		expectedChannels uint64
+		expectedPostfix  string
+		expectedOutput   string
+		description      string
 	}{
 		{
-			name:            "Simple integer channels",
-			channelsString:  "2",
+			name:             "Simple integer channels",
+			channelsString:   "2",
 			expectedChannels: 2,
 			expectedPostfix:  "",
 			expectedOutput:   "2",
-			description:     "Standard stereo without postfix",
+			description:      "Standard stereo without postfix",
 		},
 		{
-			name:            "Extended JOC channels",
-			channelsString:  "16/JOC",
+			name:             "Extended JOC channels",
+			channelsString:   "16/JOC",
 			expectedChannels: 16,
 			expectedPostfix:  "JOC",
 			expectedOutput:   "\"16/JOC\"",
-			description:     "Joint Object Coding format used in Dolby Atmos",
+			description:      "Joint Object Coding format used in Dolby Atmos",
 		},
 		{
-			name:            "BINAURAL format",
-			channelsString:  "2/BINAURAL",
+			name:             "BINAURAL format",
+			channelsString:   "2/BINAURAL",
 			expectedChannels: 2,
 			expectedPostfix:  "BINAURAL",
 			expectedOutput:   "\"2/BINAURAL\"",
-			description:     "Binaural audio for headphone delivery",
+			description:      "Binaural audio for headphone delivery",
 		},
 		{
-			name:            "IMMERSIVE format",
-			channelsString:  "8/IMMERSIVE",
+			name:             "IMMERSIVE format",
+			channelsString:   "8/IMMERSIVE",
 			expectedChannels: 8,
 			expectedPostfix:  "IMMERSIVE",
 			expectedOutput:   "\"8/IMMERSIVE\"",
-			description:     "Pre-processed immersive content",
+			description:      "Pre-processed immersive content",
 		},
 		{
-			name:            "Ambisonics first order",
-			channelsString:  "4/1OA",
+			name:             "Ambisonics first order",
+			channelsString:   "4/1OA",
 			expectedChannels: 4,
 			expectedPostfix:  "1OA",
 			expectedOutput:   "\"4/1OA\"",
-			description:     "First-order Ambisonics (B-format)",
+			description:      "First-order Ambisonics (B-format)",
 		},
 		{
-			name:            "Ambisonics second order",
-			channelsString:  "9/2OA",
+			name:             "Ambisonics second order",
+			channelsString:   "9/2OA",
 			expectedChannels: 9,
 			expectedPostfix:  "2OA",
 			expectedOutput:   "\"9/2OA\"",
-			description:     "Second-order Ambisonics",
+			description:      "Second-order Ambisonics",
 		},
 		{
-			name:            "Ambisonics third order",
-			channelsString:  "16/3OA",
+			name:             "Ambisonics third order",
+			channelsString:   "16/3OA",
 			expectedChannels: 16,
 			expectedPostfix:  "3OA",
 			expectedOutput:   "\"16/3OA\"",
-			description:     "Third-order Ambisonics",
+			description:      "Third-order Ambisonics",
 		},
 		{
-			name:            "Multiple identifiers",
-			channelsString:  "\"8/IMMERSIVE,BINAURAL\"",
+			name:             "Multiple identifiers",
+			channelsString:   "\"8/IMMERSIVE,BINAURAL\"",
 			expectedChannels: 8,
 			expectedPostfix:  "IMMERSIVE,BINAURAL",
 			expectedOutput:   "\"8/IMMERSIVE,BINAURAL\"",
-			description:     "Multiple special usage identifiers",
+			description:      "Multiple special usage identifiers",
 		},
 		{
-			name:            "Complex format with colon",
-			channelsString:  "12/DTS:X",
+			name:             "Complex format with colon",
+			channelsString:   "12/DTS:X",
 			expectedChannels: 12,
 			expectedPostfix:  "DTS:X",
 			expectedOutput:   "\"12/DTS:X\"",
-			description:     "DTS:X object-based audio format",
+			description:      "DTS:X object-based audio format",
 		},
 		{
-			name:            "360 Reality Audio",
-			channelsString:  "24/360RA",
+			name:             "360 Reality Audio",
+			channelsString:   "24/360RA",
 			expectedChannels: 24,
 			expectedPostfix:  "360RA",
 			expectedOutput:   "\"24/360RA\"",
-			description:     "Sony 360 Reality Audio format",
+			description:      "Sony 360 Reality Audio format",
 		},
 	}
 

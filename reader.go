@@ -245,7 +245,7 @@ func decode(buf *bytes.Buffer, strict bool, customDecoders []CustomDecoder) (Pla
 		}
 
 		err = decodeLineOfMasterPlaylist(master, state, line, strict)
-		master.attachRenditionsToVariants(state.alternatives)
+
 		if strict && err != nil {
 			return master, state.listType, err
 		}
@@ -256,6 +256,9 @@ func decode(buf *bytes.Buffer, strict bool, customDecoders []CustomDecoder) (Pla
 		}
 
 	}
+
+	master.attachRenditionsToVariants(state.alternatives)
+	
 	if state.listType == MEDIA && state.tagWV {
 		media.WV = wv
 	}
@@ -365,7 +368,7 @@ func decodeLineOfMasterPlaylist(p *MasterPlaylist, state *decodingState, line st
 					// Extended format like "16/JOC"
 					channelsPart := v[:slashIndex]
 					postfixPart := v[slashIndex+1:]
-					
+
 					channels, err := strconv.ParseUint(channelsPart, 10, 32)
 					if err == nil {
 						alt.Channels = new(uint64)
