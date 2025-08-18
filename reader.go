@@ -360,12 +360,30 @@ func decodeLineOfMasterPlaylist(p *MasterPlaylist, state *decodingState, line st
 			case "URI":
 				alt.URI = v
 			case "CHANNELS":
-				channels, err := strconv.ParseUint(v, 10, 32)
-				if err == nil {
-					alt.Channels = new(uint64)
-					*alt.Channels = channels
-				} else if strict {
-					return err
+				// Parse CHANNELS which can be either "2" or "16/JOC" format
+				if slashIndex := strings.Index(v, "/"); slashIndex != -1 {
+					// Extended format like "16/JOC"
+					channelsPart := v[:slashIndex]
+					postfixPart := v[slashIndex+1:]
+					
+					channels, err := strconv.ParseUint(channelsPart, 10, 32)
+					if err == nil {
+						alt.Channels = new(uint64)
+						*alt.Channels = channels
+						alt.ChannelsPostfix = postfixPart
+					} else if strict {
+						return err
+					}
+				} else {
+					// Simple integer format like "2"
+					channels, err := strconv.ParseUint(v, 10, 32)
+					if err == nil {
+						alt.Channels = new(uint64)
+						*alt.Channels = channels
+						alt.ChannelsPostfix = ""
+					} else if strict {
+						return err
+					}
 				}
 			}
 		}
