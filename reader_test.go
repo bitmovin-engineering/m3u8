@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 )
@@ -122,7 +123,7 @@ func TestDecodeMasterPlaylistWithAudioAlternative(t *testing.T) {
 	// TODO check other values
 	for _, v := range p.Variants {
 		if len(v.Alternatives) != 1 {
-			t.Fatalf("not all alternatives from #EXT-X-MEDIA parsed (has %d but should be 3", len(v.Alternatives))
+			t.Fatalf("not all alternatives from #EXT-X-MEDIA parsed (has %d but should be 1", len(v.Alternatives))
 		}
 		if v.Alternatives[0].Type != "AUDIO" {
 			t.Fatalf("alternative type should be AUDIO but it is %s", v.Alternatives[0].Type)
@@ -136,6 +137,197 @@ func TestDecodeMasterPlaylistWithAudioAlternative(t *testing.T) {
 	}
 
 	// fmt.Println(p.Encode().String())
+}
+
+func TestDecodeMasterPlaylistWithExtendedChannels(t *testing.T) {
+	f, err := os.Open("sample-playlists/master-with-joc-audio.m3u8")
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := NewMasterPlaylist()
+	err = p.DecodeFrom(bufio.NewReader(f), false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Find the alternative with extended channels format
+	var jocAlternative *Alternative
+	for _, v := range p.Variants {
+		for _, alt := range v.Alternatives {
+			if alt.Name == "atmos" {
+				jocAlternative = alt
+				break
+			}
+		}
+		if jocAlternative != nil {
+			break
+		}
+	}
+
+	if jocAlternative == nil {
+		t.Fatal("JOC audio alternative not found in parsed playlist")
+	}
+
+	// Test that channels and postfix are correctly parsed
+	if jocAlternative.Channels == nil {
+		t.Fatal("JOC alternative channels should not be nil")
+	}
+	if *jocAlternative.Channels != 16 {
+		t.Fatalf("JOC alternative channels should be 16 but it is %d", *jocAlternative.Channels)
+	}
+	if jocAlternative.ChannelsPostfix != "JOC" {
+		t.Fatalf("JOC alternative channels postfix should be 'JOC' but it is '%s'", jocAlternative.ChannelsPostfix)
+	}
+
+	// Test that regular integer channels still work
+	var stereoAlternative *Alternative
+	for _, v := range p.Variants {
+		for _, alt := range v.Alternatives {
+			if alt.Name == "stereohigh" || alt.Name == "stereogood" {
+				stereoAlternative = alt
+				break
+			}
+		}
+		if stereoAlternative != nil {
+			break
+		}
+	}
+
+	// Note: The test file might not have regular integer channels, but if it does, test them
+	if stereoAlternative != nil && stereoAlternative.Channels != nil {
+		if stereoAlternative.ChannelsPostfix != "" {
+			t.Fatalf("Stereo alternative should not have channels postfix but it is '%s'", stereoAlternative.ChannelsPostfix)
+		}
+	}
+}
+
+func TestChannelsParsingAndWriting(t *testing.T) {
+	tests := []struct {
+		name             string
+		channelsString   string
+		expectedChannels uint64
+		expectedPostfix  string
+		expectedOutput   string
+		description      string
+	}{
+		{
+			name:             "Simple integer channels",
+			channelsString:   "2",
+			expectedChannels: 2,
+			expectedPostfix:  "",
+			expectedOutput:   "2",
+			description:      "Standard stereo without postfix",
+		},
+		{
+			name:             "Extended JOC channels",
+			channelsString:   "16/JOC",
+			expectedChannels: 16,
+			expectedPostfix:  "JOC",
+			expectedOutput:   "\"16/JOC\"",
+			description:      "Joint Object Coding format used in Dolby Atmos",
+		},
+		{
+			name:             "BINAURAL format",
+			channelsString:   "2/BINAURAL",
+			expectedChannels: 2,
+			expectedPostfix:  "BINAURAL",
+			expectedOutput:   "\"2/BINAURAL\"",
+			description:      "Binaural audio for headphone delivery",
+		},
+		{
+			name:             "IMMERSIVE format",
+			channelsString:   "8/IMMERSIVE",
+			expectedChannels: 8,
+			expectedPostfix:  "IMMERSIVE",
+			expectedOutput:   "\"8/IMMERSIVE\"",
+			description:      "Pre-processed immersive content",
+		},
+		{
+			name:             "Ambisonics first order",
+			channelsString:   "4/1OA",
+			expectedChannels: 4,
+			expectedPostfix:  "1OA",
+			expectedOutput:   "\"4/1OA\"",
+			description:      "First-order Ambisonics (B-format)",
+		},
+		{
+			name:             "Ambisonics second order",
+			channelsString:   "9/2OA",
+			expectedChannels: 9,
+			expectedPostfix:  "2OA",
+			expectedOutput:   "\"9/2OA\"",
+			description:      "Second-order Ambisonics",
+		},
+		{
+			name:             "Ambisonics third order",
+			channelsString:   "16/3OA",
+			expectedChannels: 16,
+			expectedPostfix:  "3OA",
+			expectedOutput:   "\"16/3OA\"",
+			description:      "Third-order Ambisonics",
+		},
+		{
+			name:             "Multiple identifiers",
+			channelsString:   "\"8/IMMERSIVE,BINAURAL\"",
+			expectedChannels: 8,
+			expectedPostfix:  "IMMERSIVE,BINAURAL",
+			expectedOutput:   "\"8/IMMERSIVE,BINAURAL\"",
+			description:      "Multiple special usage identifiers",
+		},
+		{
+			name:             "Complex format with colon",
+			channelsString:   "12/DTS:X",
+			expectedChannels: 12,
+			expectedPostfix:  "DTS:X",
+			expectedOutput:   "\"12/DTS:X\"",
+			description:      "DTS:X object-based audio format",
+		},
+		{
+			name:             "360 Reality Audio",
+			channelsString:   "24/360RA",
+			expectedChannels: 24,
+			expectedPostfix:  "360RA",
+			expectedOutput:   "\"24/360RA\"",
+			description:      "Sony 360 Reality Audio format",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Test parsing
+			playlist := `#EXTM3U
+#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",NAME="test",CHANNELS=` + tt.channelsString + `,URI="test.m3u8"
+#EXT-X-STREAM-INF:BANDWIDTH=1000000,AUDIO="audio"
+test.m3u8`
+
+			p := NewMasterPlaylist()
+			err := p.DecodeFrom(strings.NewReader(playlist), false)
+			if err != nil {
+				t.Fatalf("Failed to parse playlist: %v", err)
+			}
+
+			if len(p.Variants) == 0 {
+				t.Fatal("No variants found in parsed playlist")
+			}
+
+			alt := p.Variants[0].Alternatives[0]
+			if alt.Channels == nil {
+				t.Fatal("Channels should not be nil")
+			}
+			if *alt.Channels != tt.expectedChannels {
+				t.Fatalf("Expected channels %d, got %d", tt.expectedChannels, *alt.Channels)
+			}
+			if alt.ChannelsPostfix != tt.expectedPostfix {
+				t.Fatalf("Expected postfix '%s', got '%s'", tt.expectedPostfix, alt.ChannelsPostfix)
+			}
+
+			// Test writing - verify that the output contains the expected channels format
+			output := p.Encode().String()
+			if !strings.Contains(output, "CHANNELS="+tt.expectedOutput) {
+				t.Fatalf("Expected output to contain 'CHANNELS=%s', but got:\n%s", tt.expectedOutput, output)
+			}
+		})
+	}
 }
 
 func TestDecodeMasterPlaylistWithAlternativesB(t *testing.T) {

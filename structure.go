@@ -198,6 +198,7 @@ type Alternative struct {
 	Characteristics string
 	Subtitles       string
 	Channels        *uint64
+	ChannelsPostfix string
 }
 
 // MediaSegment structure represents a media segment included in a

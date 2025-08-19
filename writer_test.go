@@ -802,6 +802,161 @@ func TestNewMasterPlaylistWithAlternatives(t *testing.T) {
 	}
 }
 
+func TestWriterExtendedChannelsFormats(t *testing.T) {
+	tests := []struct {
+		name            string
+		channels        uint64
+		channelsPostfix string
+		expectedOutput  string
+		description     string
+	}{
+		{
+			name:            "Simple integer channels",
+			channels:        2,
+			channelsPostfix: "",
+			expectedOutput:  "CHANNELS=2",
+			description:     "Standard stereo without postfix",
+		},
+		{
+			name:            "JOC format",
+			channels:        16,
+			channelsPostfix: "JOC",
+			expectedOutput:  "CHANNELS=\"16/JOC\"",
+			description:     "Joint Object Coding format used in Dolby Atmos",
+		},
+		{
+			name:            "BINAURAL format",
+			channels:        2,
+			channelsPostfix: "BINAURAL",
+			expectedOutput:  "CHANNELS=\"2/BINAURAL\"",
+			description:     "Binaural audio for headphone delivery",
+		},
+		{
+			name:            "IMMERSIVE format",
+			channels:        8,
+			channelsPostfix: "IMMERSIVE",
+			expectedOutput:  "CHANNELS=\"8/IMMERSIVE\"",
+			description:     "Pre-processed immersive content",
+		},
+		{
+			name:            "Ambisonics first order",
+			channels:        4,
+			channelsPostfix: "1OA",
+			expectedOutput:  "CHANNELS=\"4/1OA\"",
+			description:     "First-order Ambisonics (B-format)",
+		},
+		{
+			name:            "Ambisonics second order",
+			channels:        9,
+			channelsPostfix: "2OA",
+			expectedOutput:  "CHANNELS=\"9/2OA\"",
+			description:     "Second-order Ambisonics",
+		},
+		{
+			name:            "Ambisonics third order",
+			channels:        16,
+			channelsPostfix: "3OA",
+			expectedOutput:  "CHANNELS=\"16/3OA\"",
+			description:     "Third-order Ambisonics",
+		},
+		{
+			name:            "Multiple identifiers",
+			channels:        8,
+			channelsPostfix: "IMMERSIVE,BINAURAL",
+			expectedOutput:  "CHANNELS=\"8/IMMERSIVE,BINAURAL\"",
+			description:     "Multiple special usage identifiers",
+		},
+		{
+			name:            "Complex format with colon",
+			channels:        12,
+			channelsPostfix: "DTS:X",
+			expectedOutput:  "CHANNELS=\"12/DTS:X\"",
+			description:     "DTS:X object-based audio format",
+		},
+		{
+			name:            "360 Reality Audio",
+			channels:        24,
+			channelsPostfix: "360RA",
+			expectedOutput:  "CHANNELS=\"24/360RA\"",
+			description:     "Sony 360 Reality Audio format",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := NewMasterPlaylist()
+			channels := tt.channels
+			audioAlt := &Alternative{
+				GroupId:         "audio",
+				URI:             "test.m3u8",
+				Type:            "AUDIO",
+				Name:            "test",
+				Default:         true,
+				Autoselect:      "YES",
+				Language:        "en",
+				Channels:        &channels,
+				ChannelsPostfix: tt.channelsPostfix,
+			}
+
+			// Create a simple media playlist for the variant
+			p, err := NewMediaPlaylist(1, 1)
+			if err != nil {
+				t.Fatalf("Failed to create media playlist: %v", err)
+			}
+			err = p.Append("segment.ts", 10.0, "")
+			if err != nil {
+				t.Fatalf("Failed to add segment: %v", err)
+			}
+
+			m.Append("playlist.m3u8", p, VariantParams{Audio: "audio", Alternatives: []*Alternative{audioAlt}})
+
+			output := m.String()
+			if !strings.Contains(output, tt.expectedOutput) {
+				t.Errorf("Expected output to contain %s, but got:\n%s", tt.expectedOutput, output)
+			}
+
+			// Verify round-trip parsing works
+			parsed := NewMasterPlaylist()
+			err = parsed.DecodeFrom(strings.NewReader(output), false)
+			if err != nil {
+				t.Fatalf("Failed to parse generated playlist: %v", err)
+			}
+
+			if len(parsed.Variants) == 0 {
+				t.Fatal("No variants found in parsed playlist")
+			}
+
+			// Check if alternatives are stored in variants or directly in playlist
+			var parsedAlt *Alternative
+			if len(parsed.Variants[0].Alternatives) > 0 {
+				parsedAlt = parsed.Variants[0].Alternatives[0]
+			} else {
+				// Look for alternatives in the parsed playlist's alternatives list
+				for _, v := range parsed.Variants {
+					if len(v.Alternatives) > 0 {
+						parsedAlt = v.Alternatives[0]
+						break
+					}
+				}
+			}
+
+			if parsedAlt == nil {
+				t.Fatalf("No alternative found in parsed playlist. Variants: %d, Output:\n%s", len(parsed.Variants), output)
+			}
+
+			if parsedAlt.Channels == nil {
+				t.Fatal("Parsed channels should not be nil")
+			}
+			if *parsedAlt.Channels != tt.channels {
+				t.Errorf("Expected channels %d, got %d", tt.channels, *parsedAlt.Channels)
+			}
+			if parsedAlt.ChannelsPostfix != tt.channelsPostfix {
+				t.Errorf("Expected postfix '%s', got '%s'", tt.channelsPostfix, parsedAlt.ChannelsPostfix)
+			}
+		})
+	}
+}
+
 // Create new master playlist supporting CLOSED-CAPTIONS=NONE
 func TestNewMasterPlaylistWithClosedCaptionEqNone(t *testing.T) {
 	m := NewMasterPlaylist()
