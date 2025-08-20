@@ -796,7 +796,7 @@ func TestNewMasterPlaylistWithAlternatives(t *testing.T) {
 	if m.ver != 4 {
 		t.Fatalf("Expected version 4, actual, %d", m.ver)
 	}
-	expected := `#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",NAME="main",DEFAULT=YES,AUTOSELECT=YES,LANGUAGE="english",CHANNELS=2,URI="800/rendition.m3u8"`
+	expected := `#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",NAME="main",DEFAULT=YES,AUTOSELECT=YES,LANGUAGE="english",CHANNELS="2",URI="800/rendition.m3u8"`
 	if !strings.Contains(m.String(), expected) {
 		t.Fatalf("Master playlist did not contain: %s\nMaster Playlist:\n%v", expected, m.String())
 	}
@@ -814,7 +814,7 @@ func TestWriterExtendedChannelsFormats(t *testing.T) {
 			name:            "Simple integer channels",
 			channels:        2,
 			channelsPostfix: "",
-			expectedOutput:  "CHANNELS=2",
+			expectedOutput:  "CHANNELS=\"2\"",
 			description:     "Standard stereo without postfix",
 		},
 		{

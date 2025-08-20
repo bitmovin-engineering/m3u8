@@ -152,17 +152,13 @@ func (p *MasterPlaylist) Encode() *bytes.Buffer {
 				}
 				if alt.Channels != nil {
 					p.buf.WriteString(",CHANNELS=")
+					p.buf.WriteRune('"')
+					p.buf.WriteString(strconv.FormatUint(*alt.Channels, 10))
 					if alt.ChannelsPostfix != "" {
-						// Extended format with postfix needs quotes
-						p.buf.WriteRune('"')
-						p.buf.WriteString(strconv.FormatUint(*alt.Channels, 10))
 						p.buf.WriteRune('/')
 						p.buf.WriteString(alt.ChannelsPostfix)
-						p.buf.WriteRune('"')
-					} else {
-						// Simple integer format, no quotes for backward compatibility
-						p.buf.WriteString(strconv.FormatUint(*alt.Channels, 10))
 					}
+					p.buf.WriteRune('"')
 				}
 				if alt.URI != "" {
 					p.buf.WriteString(",URI=\"")

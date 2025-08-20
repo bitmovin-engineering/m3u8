@@ -215,7 +215,7 @@ func TestChannelsParsingAndWriting(t *testing.T) {
 			channelsString:   "2",
 			expectedChannels: 2,
 			expectedPostfix:  "",
-			expectedOutput:   "2",
+			expectedOutput:   "\"2\"",
 			description:      "Standard stereo without postfix",
 		},
 		{
