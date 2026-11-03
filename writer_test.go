@@ -957,6 +957,41 @@ func TestWriterExtendedChannelsFormats(t *testing.T) {
 	}
 }
 
+func TestEncodeMasterPlaylistForcedNotQuoted(t *testing.T) {
+	tests := []struct {
+		name     string
+		forced   string
+		expected string
+	}{
+		{"Unquoted NO", `FORCED=NO`, `FORCED=NO,`},
+		{"Unquoted YES", `FORCED=YES`, `FORCED=YES,`},
+		{"Quoted input is written unquoted", `FORCED="NO"`, `FORCED=NO,`},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			input := "#EXTM3U\n" +
+				`#EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",NAME="en",DEFAULT=NO,AUTOSELECT=NO,` +
+				tt.forced + `,LANGUAGE="en",URI="subs_en.m3u8"` + "\n" +
+				`#EXT-X-STREAM-INF:BANDWIDTH=1000000,SUBTITLES="subs"` + "\n" +
+				"video.m3u8\n"
+
+			m := NewMasterPlaylist()
+			if err := m.DecodeFrom(strings.NewReader(input), true); err != nil {
+				t.Fatalf("Failed to decode playlist: %v", err)
+			}
+
+			output := m.String()
+			if !strings.Contains(output, tt.expected) {
+				t.Errorf("Expected output to contain %s, but got:\n%s", tt.expected, output)
+			}
+			if strings.Contains(output, `FORCED="`) {
+				t.Errorf("FORCED must not be quoted, but got:\n%s", output)
+			}
+		})
+	}
+}
+
 // Create new master playlist supporting CLOSED-CAPTIONS=NONE
 func TestNewMasterPlaylistWithClosedCaptionEqNone(t *testing.T) {
 	m := NewMasterPlaylist()
